@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.py[cod]
+.langchain_cache.db
+.DS_Store
+.venv/
+venv/
