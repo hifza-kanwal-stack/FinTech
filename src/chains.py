@@ -1,39 +1,38 @@
 """
 LangChain Model Initialization, LLMChain, Message Handling, and Streaming.
-Includes Python 3.14 / 3.15 compatibility for LLMChain.
+
+The legacy `langchain.chains.LLMChain` was removed from the main `langchain`
+package in LangChain 1.0, so this module provides a small LLMChain class built
+on the modern Runnable pipeline (prompt | llm). It works on every Python
+version that langchain-core supports (including 3.14+).
 """
 from typing import Dict, Any, Generator, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
-
-# Safe import for LLMChain across Python 3.10 - 3.15+
-try:
-    from langchain.chains import LLMChain
-except TypeError:
-    class LLMChain:
-        """
-        Python 3.14/3.15+ compatible LLMChain wrapper using LangChain's
-        Runnable pipeline (prompt | llm) when legacy Chain hits annotationlib bug.
-        """
-        def __init__(self, llm: ChatOpenAI, prompt: Any):
-            self.llm = llm
-            self.prompt = prompt
-            self.chain = prompt | llm
-
-        def invoke(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-            result = self.chain.invoke(inputs)
-            content = result.content if hasattr(result, "content") else str(result)
-            return {**inputs, "text": content}
-
-        def run(self, *args: Any, **kwargs: Any) -> str:
-            inputs = args[0] if args and isinstance(args[0], dict) else kwargs
-            return self.invoke(inputs)["text"]
 
 from src.prompts import (
     SYSTEM_SAFETY_PROMPT,
     STRUCTURED_CHAT_PROMPT_TEMPLATE,
     NARRATIVE_CHAT_TEMPLATE,
 )
+
+
+class LLMChain:
+    """Drop-in replacement for the legacy LLMChain, built on `prompt | llm`."""
+
+    def __init__(self, llm: ChatOpenAI, prompt: Any):
+        self.llm = llm
+        self.prompt = prompt
+        self.chain = prompt | llm
+
+    def invoke(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        result = self.chain.invoke(inputs)
+        content = result.content if hasattr(result, "content") else str(result)
+        return {**inputs, "text": content}
+
+    def run(self, *args: Any, **kwargs: Any) -> str:
+        inputs = args[0] if args and isinstance(args[0], dict) else kwargs
+        return self.invoke(inputs)["text"]
 
 
 def get_chat_model(
@@ -65,11 +64,7 @@ def run_structured_analysis(llm: ChatOpenAI, inputs: Dict[str, Any]) -> str:
     """Run the reusable LLMChain and return the raw JSON string output."""
     chain = build_financial_llm_chain(llm)
     response = chain.invoke(inputs)
-    if isinstance(response, dict):
-        return response.get("text", "")
-    if hasattr(response, "content"):
-        return str(response.content)
-    return str(response)
+    return response.get("text", "")
 
 
 def stream_recommendations(
