@@ -2,7 +2,8 @@
 LangChain Caching Configuration (InMemoryCache + SQLiteCache).
 """
 from langchain_core.globals import set_llm_cache
-from langchain_community.cache import InMemoryCache, SQLiteCache
+from langchain_core.caches import InMemoryCache
+from langchain_community.cache import SQLiteCache
 
 _MEMORY_CACHE_INSTANCE = None
 _SQLITE_CACHE_INSTANCE = None
